@@ -1,14 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import Dashboard from "../components/Dashboard";
 import { useNavigate } from "react-router-dom";
 
 function Immersion() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(() => {
+    const stored = localStorage.getItem("immersionData");
+    return stored ? JSON.parse(stored) : [];
+  });
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteTargetIndex, setDeleteTargetIndex] = useState(null);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const dataToStore = data.map(({ downloadUrl, ...rest }) => rest);
+    localStorage.setItem("immersionData", JSON.stringify(dataToStore));
+  }, [data]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -31,13 +40,13 @@ function Immersion() {
         Department: row["DEPARTMENT"] || "",
       }));
 
-      setData([
-        {
-          fileName: file.name,
-          date: new Date().toLocaleString(),
-          content: cleanedData,
-        },
-      ]);
+      const newEntry = {
+        fileName: file.name,
+        date: new Date().toLocaleString(),
+        content: cleanedData,
+      };
+
+      setData((prevData) => [...prevData, newEntry]); // ✅ Append to existing
     };
     reader.readAsBinaryString(file);
   };
@@ -68,6 +77,13 @@ function Immersion() {
       })
       .then((blob) => {
         const url = window.URL.createObjectURL(blob);
+
+        setData((prevData) =>
+          prevData.map((item, i) =>
+            i === index ? { ...item, downloadUrl: url } : item
+          )
+        );
+
         const a = document.createElement("a");
         a.href = url;
         a.download = "TESDA_Filled_Template.xlsx";
@@ -95,10 +111,10 @@ function Immersion() {
     }
   };
 
-  // ✅ FIXED: This now passes row data using `state`
   const handleViewDetails = (index) => {
-    navigate(`/immersion-records/${index}`, {
-      state: { row: data[index] },
+    const fileData = data[index];
+    navigate(`/immersion-records/${encodeURIComponent(fileData.fileName)}`, {
+      state: { row: fileData },
     });
   };
 
@@ -128,7 +144,7 @@ function Immersion() {
 
       <div className="flex-1 p-3 mt-10 mr-5 ml-6 overflow-y-auto">
         <div style={containerStyle}>
-          <h2 style={sectionTitleStyle}>Work Immersion File Preview</h2>
+          <h2 style={sectionTitleStyle}>Work Immersion Records</h2>
 
           <div className="mb-4">
             <label className="bg-[#a361ef] hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded cursor-pointer inline-block">
@@ -179,6 +195,21 @@ function Immersion() {
                       >
                         Download
                       </button>
+                      {row.downloadUrl && (
+                        <button
+                          onClick={() => {
+                            const a = document.createElement("a");
+                            a.href = row.downloadUrl;
+                            a.download = "TESDA_Filled_Template.xlsx";
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                          }}
+                          className="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded"
+                        >
+                          Re-download
+                        </button>
+                      )}
                       <button
                         onClick={() => confirmDelete(index)}
                         className="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded"

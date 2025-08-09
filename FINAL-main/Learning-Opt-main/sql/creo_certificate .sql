@@ -17,6 +17,15 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
+
+CREATE TABLE uploaded_files (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  file_name TEXT NOT NULL,
+  upload_date TEXT NOT NULL,
+  content TEXT -- JSON string of rows
+);
+
+
 --
 -- Database: `creo_certificate`
 --
