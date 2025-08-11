@@ -14,17 +14,36 @@ const writtenMaxScores = {
   ISO: 10,
   PO: 15,
   HR: 10,
-  SUPP: 40,
+  APPDEV: 20,
+  TECH: 46,
   DS: 10,
 };
 
 const PERFORMANCE_SCALE = [
-  [5, 100],
-  [4, 95],
-  [3, 85],
-  [2, 79],
-  [1, 75],
   [0, 60],
+  [1, 75],
+  [1.2, 75],
+  [1.4, 75],
+  [1.6, 76],
+  [1.8, 77],
+  [1.9, 78],
+  [2, 79],
+  [2.2, 80],
+  [2.4, 81],
+  [2.6, 82],
+  [2.8, 83],
+  [2.9, 84],
+  [3, 85],
+  [3.2, 86],
+  [3.4, 87],
+  [3.6, 88],
+  [3.8, 89],
+  [4, 95],
+  [4.2, 96],
+  [4.4, 97],
+  [4.6, 98],
+  [4.8, 99],
+  [5, 100],
 ];
 
 const supportDepartments = ["ACCTG", "ERT", "HSN", "HS", "ER"];
@@ -75,7 +94,6 @@ export default function ImmersionTechnical() {
     });
   });
 
-  // Filter rows by department based on page
   const filteredRows = rows.filter((row) => {
     const dept = (row["DEPARTMENT"] || "").toUpperCase().trim();
     if (isSupport) return supportDepartments.includes(dept);
@@ -121,18 +139,42 @@ export default function ImmersionTechnical() {
   const lookupPerformanceGrade = (value) => {
     const score = parseFloat(value);
     if (isNaN(score)) return 0;
+    let matchedGrade = 60;
     for (const [limit, grade] of PERFORMANCE_SCALE) {
-      if (score >= limit) return grade;
+      if (score >= limit) {
+        matchedGrade = grade;
+      } else {
+        break;
+      }
     }
-    return 60;
+    return matchedGrade;
   };
 
+  const totalScoreFields = [
+    "WI",
+    "CO",
+    "5S",
+    "BO",
+    "CBO",
+    "SDG", // NTOP
+    "OHSA",
+    "WE",
+    "UJC",
+    "ISO",
+    "PO",
+    "HR", // WVS
+    "APPDEV", // EQUIP
+    "TECH",
+    "DS", // ASSESSMENT
+  ];
+
   const computeResults = (grades, performanceValue) => {
-    const writtenTotal = Object.entries(grades).reduce(
-      (sum, [_, val]) => sum + (parseInt(val, 10) || 0),
+    // Only sum the grades from NTOP to Assessment
+    const writtenTotal = totalScoreFields.reduce(
+      (sum, key) => sum + (parseInt(grades[key], 10) || 0),
       0
     );
-    const writtenRating = ((writtenTotal / 185) * 50 + 50).toFixed(2);
+    const writtenRating = ((writtenTotal / 201) * 50 + 50).toFixed(2);
     const perfRating = lookupPerformanceGrade(performanceValue);
     const finalGrade = (
       parseFloat(writtenRating) * 0.3 +
@@ -156,6 +198,45 @@ export default function ImmersionTechnical() {
   const btnBaseColor = " bg-[#a361ef]";
   const btnHoverColor = "hover:bg- bg-[#a361ef]";
   const btnActiveColor = "bg-[#6f5ad5]";
+
+  // Arrow key navigation handler
+  const handleKeyDown = (e, row, col) => {
+    const key = e.key;
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return;
+
+    e.preventDefault();
+
+    // Number of columns: 1 performance + number of writtenMaxScores columns
+    const totalCols = 1 + Object.keys(writtenMaxScores).length;
+    const totalRows = filteredRows.length;
+
+    let newRow = row;
+    let newCol = col;
+
+    switch (key) {
+      case "ArrowUp":
+        newRow = row > 0 ? row - 1 : row;
+        break;
+      case "ArrowDown":
+        newRow = row < totalRows - 1 ? row + 1 : row;
+        break;
+      case "ArrowLeft":
+        newCol = col > 0 ? col - 1 : col;
+        break;
+      case "ArrowRight":
+        newCol = col < totalCols - 1 ? col + 1 : col;
+        break;
+    }
+
+    // Select input with matching data-row and data-col
+    const selector = `input[data-row="${newRow}"][data-col="${newCol}"]`;
+    const nextInput = document.querySelector(selector);
+
+    if (nextInput) {
+      nextInput.focus();
+      nextInput.select();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] p-8">
@@ -234,6 +315,9 @@ export default function ImmersionTechnical() {
                   <th className={`${cellStyle} ${headerStyle}`} colSpan={6}>
                     WVS
                   </th>
+                  <th className={`${cellStyle} ${headerStyle}`} colSpan={1}>
+                    EQUIP
+                  </th>
                   <th className={`${cellStyle} ${headerStyle}`} colSpan={2}>
                     ASSESSMENT
                   </th>
@@ -241,7 +325,10 @@ export default function ImmersionTechnical() {
                     TOTAL SCORE
                   </th>
                   <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    AVERAGE
+                    WRITTEN RATING
+                  </th>
+                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                    PERFORMANCE TASK
                   </th>
                   <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
                     FINAL GRADE
@@ -268,7 +355,12 @@ export default function ImmersionTechnical() {
                       {key}
                     </th>
                   ))}
-                  {["SUPP", "DS"].map((key) => (
+                  {["APPDEV"].map((key) => (
+                    <th className={`${cellStyle} ${headerStyle}`} key={key}>
+                      {key}
+                    </th>
+                  ))}
+                  {["TECH", "DS"].map((key) => (
                     <th className={`${cellStyle} ${headerStyle}`} key={key}>
                       {key}
                     </th>
@@ -276,21 +368,28 @@ export default function ImmersionTechnical() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row, rowIndex) => {
+                {filteredRows.map((row, filteredIndex) => {
+                  const rowIndex = rows.findIndex((r) => r === row);
                   const result = computeResults(row.grades, row.performance);
+                  let remarksStyle = {};
+                  if (parseFloat(result.finalGrade) >= 75) {
+                    remarksStyle = { fontWeight: "bold", color: "green" };
+                  }
                   return (
                     <tr
-                      key={rowIndex}
+                      key={filteredIndex}
                       className={
-                        rowIndex % 2 === 0 ? "bg-[#2c2c2c]" : "bg-[#3a3a3a]"
+                        filteredIndex % 2 === 0 ? "bg-[#2c2c2c]" : "bg-[#3a3a3a]"
                       }
                     >
-                      <td className={cellStyle}>{rowIndex + 1}</td>
+                      <td className={cellStyle}>{filteredIndex + 1}</td>
                       <td className={cellStyle}>{row["LAST NAME"] || ""}</td>
                       <td className={cellStyle}>{row["FIRST NAME"] || ""}</td>
                       <td className={cellStyle}>{row["MIDDLE NAME"] || ""}</td>
                       <td className={cellStyle}>{row["STRAND"] || ""}</td>
                       <td className={cellStyle}>{row["DEPARTMENT"] || ""}</td>
+
+                      {/* Performance Appraisal input */}
                       <td className={cellStyle}>
                         <input
                           type="text"
@@ -299,9 +398,14 @@ export default function ImmersionTechnical() {
                           onChange={(e) =>
                             handlePerformanceChange(rowIndex, e.target.value)
                           }
+                          data-row={filteredIndex}
+                          data-col={0} // performance is col 0
+                          onKeyDown={(e) => handleKeyDown(e, filteredIndex, 0)}
                           className="w-full bg-transparent text-white text-center outline-none"
                         />
                       </td>
+
+                      {/* Written Scores inputs */}
                       {Object.keys(writtenMaxScores).map((field, i) => (
                         <td key={i} className={cellStyle}>
                           <input
@@ -312,14 +416,23 @@ export default function ImmersionTechnical() {
                             onChange={(e) =>
                               handleGradeChange(rowIndex, field, e.target.value)
                             }
+                            data-row={filteredIndex}
+                            data-col={i + 1} // written scores start col 1
+                            onKeyDown={(e) =>
+                              handleKeyDown(e, filteredIndex, i + 1)
+                            }
                             className="w-full bg-transparent text-white text-center outline-none"
                           />
                         </td>
                       ))}
+
                       <td className={cellStyle}>{result.writtenTotal}</td>
                       <td className={cellStyle}>{result.writtenRating}</td>
+                      <td className={cellStyle}>{result.performanceRating}</td>
                       <td className={cellStyle}>{result.finalGrade}</td>
-                      <td className={cellStyle}>{result.remarks}</td>
+                      <td className={cellStyle} style={remarksStyle}>
+                        {result.remarks}
+                      </td>
                     </tr>
                   );
                 })}

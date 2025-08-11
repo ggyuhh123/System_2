@@ -14,17 +14,23 @@ const writtenMaxScores = {
   ISO: 10,
   PO: 15,
   HR: 10,
-  SUPP: 40,
+  WI: 10,
+  ELEX: 10,
+  CM: 10,
+  SPC: 10,
+  PROD: 40,
   DS: 10,
 };
 
 const PERFORMANCE_SCALE = [
-  [5, 100],
-  [4, 95],
-  [3, 85],
-  [2, 79],
-  [1, 75],
-  [0, 60],
+  [0, 60], [1, 75], [1.2, 75],
+  [1.4, 75], [1.6, 76], [1.8, 77],
+  [1.9, 78], [2, 79], [2.2, 80],
+  [2.4, 81], [2.6, 82], [2.8, 83],
+  [2.9, 84], [3, 85], [3.2, 86],
+  [3.4, 87], [3.6, 88], [3.8, 89],
+  [4, 95], [4.2, 96], [4.4, 97],
+  [4.6, 98], [4.8, 99], [5, 100]
 ];
 
 const supportDepartments = ["ACCTG", "ERT", "HSN", "HS", "ER"];
@@ -89,11 +95,7 @@ export default function ImmersionProduction() {
     if (!isNaN(numeric) && numeric > max) return;
     setRows((prev) => {
       const updated = [...prev];
-      const updatedRow = { ...updated[rowIndex] };
-      const updatedGrades = { ...updatedRow.grades };
-      updatedGrades[field] = value;
-      updatedRow.grades = updatedGrades;
-      updated[rowIndex] = updatedRow;
+      updated[rowIndex].grades[field] = value;
       return updated;
     });
   };
@@ -102,8 +104,7 @@ export default function ImmersionProduction() {
     if (value === "") {
       setRows((prev) => {
         const updated = [...prev];
-        const updatedRow = { ...updated[rowIndex], performance: value };
-        updated[rowIndex] = updatedRow;
+        updated[rowIndex].performance = value;
         return updated;
       });
       return;
@@ -114,8 +115,7 @@ export default function ImmersionProduction() {
       if (/^\d*\.?\d{0,2}$/.test(value)) {
         setRows((prev) => {
           const updated = [...prev];
-          const updatedRow = { ...updated[rowIndex], performance: value };
-          updated[rowIndex] = updatedRow;
+          updated[rowIndex].performance = value;
           return updated;
         });
       }
@@ -125,10 +125,15 @@ export default function ImmersionProduction() {
   const lookupPerformanceGrade = (value) => {
     const score = parseFloat(value);
     if (isNaN(score)) return 0;
+    let matchedGrade = 60;
     for (const [limit, grade] of PERFORMANCE_SCALE) {
-      if (score >= limit) return grade;
+      if (score >= limit) {
+        matchedGrade = grade;
+      } else {
+        break;
+      }
     }
-    return 60;
+    return matchedGrade;
   };
 
   const computeResults = (grades, performanceValue) => {
@@ -136,13 +141,13 @@ export default function ImmersionProduction() {
       (sum, [_, val]) => sum + (parseInt(val, 10) || 0),
       0
     );
-    const writtenRating = ((writtenTotal / 185) * 50 + 50).toFixed(2);
+    const writtenRating = ((writtenTotal / 175) * 50 + 50).toFixed(2);
     const perfRating = lookupPerformanceGrade(performanceValue);
     const finalGrade = (
       parseFloat(writtenRating) * 0.3 +
       parseFloat(perfRating) * 0.7
     ).toFixed(2);
-    const remarks = finalGrade < 75 ? "INCOMPLETE" : "COMPLETE";
+    const remarks = finalGrade < 75 ? "INCOMPLETE" : "PASSED";
     return {
       writtenTotal,
       writtenRating,
@@ -150,6 +155,35 @@ export default function ImmersionProduction() {
       finalGrade,
       remarks,
     };
+  };
+
+ 
+  const totalColumns =
+    1 +   
+    6 +   
+    6 +   // WVS fields
+    6;    // EQUIP + ASSESSMENT fields (WI(EQUIP), ELEX, CM, SPC, PROD, DS)
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e, rowIndex, colIndex) => {
+    const key = e.key;
+    if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) return;
+
+    e.preventDefault();
+
+    let newRow = rowIndex;
+    let newCol = colIndex;
+
+    if (key === "ArrowUp") newRow = Math.max(0, rowIndex - 1);
+    if (key === "ArrowDown") newRow = Math.min(filteredRows.length - 1, rowIndex + 1);
+    if (key === "ArrowLeft") newCol = Math.max(0, colIndex - 1);
+    if (key === "ArrowRight") newCol = Math.min(totalColumns - 1, colIndex + 1);
+
+    const targetId = `cell-${newRow}-${newCol}`;
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.focus();
+    }
   };
 
   const cellStyle =
@@ -220,95 +254,127 @@ export default function ImmersionProduction() {
         ) : (
           <div className="overflow-auto border border-gray-600 rounded-lg max-h-[600px]">
             <table className="w-full border-collapse text-left">
-              <thead>
-                <tr>
-                  <th className={`${cellStyle} ${headerStyle}`} colSpan={4}>
-                    Learners' Name
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} colSpan={2}>
-                    General Info
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    PERFORMANCE APPRAISAL
-                    <p className="text-xs">(0 - 5)</p>
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} colSpan={6}>
-                    NTOP
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} colSpan={6}>
-                    WVS
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} colSpan={2}>
-                    ASSESSMENT
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    TOTAL SCORE
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    AVERAGE
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    FINAL GRADE
-                  </th>
-                  <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
-                    REMARKS
-                  </th>
-                </tr>
-                <tr>
-                  <th className={`${cellStyle} ${headerStyle}`}>No.</th>
-                  <th className={`${cellStyle} ${headerStyle}`}>LAST NAME</th>
-                  <th className={`${cellStyle} ${headerStyle}`}>FIRST NAME</th>
-                  <th className={`${cellStyle} ${headerStyle}`}>MIDDLE NAME</th>
-                  <th className={`${cellStyle} ${headerStyle}`}>STRAND</th>
-                  <th className={`${cellStyle} ${headerStyle}`}>DEPARTMENT</th>
+             <thead>
+              <tr>
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={4}>
+                  Learners' Name
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={2}>
+                  General Info
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  PERFORMANCE APPRAISAL
+                  <p className="text-xs">(0 - 5)</p>
+                </th>
 
-                  {["WI", "CO", "5S", "BO", "CBO", "SDG"].map((key) => (
-                    <th className={`${cellStyle} ${headerStyle}`} key={key}>
-                      {key}
-                    </th>
-                  ))}
-                  {["OHSA", "WE", "UJC", "ISO", "PO", "HR"].map((key) => (
-                    <th className={`${cellStyle} ${headerStyle}`} key={key}>
-                      {key}
-                    </th>
-                  ))}
-                  {["SUPP", "DS"].map((key) => (
-                    <th className={`${cellStyle} ${headerStyle}`} key={key}>
-                      {key}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
+                {/* New NTOP Column */}
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={6}>
+                  NTOP
+                </th>
+
+                {/* New WVS Column */}
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={6}>
+                  WVS
+                </th>
+
+                {/* Existing Columns */}
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={4}>
+                  EQUIP
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} colSpan={2}>
+                  ASSESSMENT
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  TOTAL SCORE
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  WRITTEN WORKS
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  PERFORMANCE TASK
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  FINAL GRADE
+                </th>
+                <th className={`${cellStyle} ${headerStyle}`} rowSpan={2}>
+                  REMARKS
+                </th>
+              </tr>
+              <tr>
+                <th className={`${cellStyle} ${headerStyle}`}>No.</th>
+                <th className={`${cellStyle} ${headerStyle}`}>LAST NAME</th>
+                <th className={`${cellStyle} ${headerStyle}`}>FIRST NAME</th>
+                <th className={`${cellStyle} ${headerStyle}`}>MIDDLE NAME</th>
+                <th className={`${cellStyle} ${headerStyle}`}>STRAND</th>
+                <th className={`${cellStyle} ${headerStyle}`}>DEPARTMENT</th>
+
+                {/* NTOP sub-columns */}
+                {["WI", "CO", "5S", "BO", "CBO", "SDG"].map((key) => (
+                  <th className={`${cellStyle} ${headerStyle}`} key={key}>
+                    {key}
+                  </th>
+                ))}
+
+                {/* WVS sub-columns */}
+                {["OHSA", "WE", "UJC", "ISO", "PO", "HR"].map((key) => (
+                  <th className={`${cellStyle} ${headerStyle}`} key={key}>
+                    {key}
+                  </th>
+                ))}
+
+                {/* Existing EQUIP sub-columns */}
+                {["WI (EQUIP)", "ELEX", "CM", "SPC"].map((key) => (
+                  <th className={`${cellStyle} ${headerStyle}`} key={key}>
+                    {key}
+                  </th>
+                ))}
+                {["PROD", "DS"].map((key) => (
+                  <th className={`${cellStyle} ${headerStyle}`} key={key}>
+                    {key}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+
               <tbody>
-                {filteredRows.map((row, rowIndex) => {
+                {filteredRows.map((row, filteredIndex) => {
+                  const rowIndex = rows.findIndex((r) => r === row);
                   const result = computeResults(row.grades, row.performance);
+
                   return (
                     <tr
-                      key={rowIndex}
-                      className={
-                        rowIndex % 2 === 0 ? "bg-[#2c2c2c]" : "bg-[#3a3a3a]"
-                      }
+                      key={filteredIndex}
+                      className={filteredIndex % 2 === 0 ? "bg-[#2c2c2c]" : "bg-[#3a3a3a]"}
                     >
-                      <td className={cellStyle}>{rowIndex + 1}</td>
+                      <td className={cellStyle}>{filteredIndex + 1}</td>
                       <td className={cellStyle}>{row["LAST NAME"] || ""}</td>
                       <td className={cellStyle}>{row["FIRST NAME"] || ""}</td>
                       <td className={cellStyle}>{row["MIDDLE NAME"] || ""}</td>
                       <td className={cellStyle}>{row["STRAND"] || ""}</td>
                       <td className={cellStyle}>{row["DEPARTMENT"] || ""}</td>
+
                       <td className={cellStyle}>
                         <input
+                          id={`cell-${filteredIndex}-0`}
                           type="text"
                           inputMode="decimal"
                           value={row.performance}
                           onChange={(e) =>
                             handlePerformanceChange(rowIndex, e.target.value)
                           }
+                          onKeyDown={(e) =>
+                            handleKeyDown(e, filteredIndex, 0)
+                          }
                           className="w-full bg-transparent text-white text-center outline-none"
+                          tabIndex={0}
                         />
                       </td>
-                      {Object.keys(writtenMaxScores).map((field, i) => (
-                        <td key={i} className={cellStyle}>
+
+                      {/* NTOP fields */}
+                      {["WI", "CO", "5S", "BO", "CBO", "SDG"].map((field, i) => (
+                        <td key={`ntop-${i}`} className={cellStyle}>
                           <input
+                            id={`cell-${filteredIndex}-${1 + i}`}
                             type="text"
                             inputMode="numeric"
                             pattern="\d*"
@@ -316,12 +382,62 @@ export default function ImmersionProduction() {
                             onChange={(e) =>
                               handleGradeChange(rowIndex, field, e.target.value)
                             }
+                            onKeyDown={(e) =>
+                              handleKeyDown(e, filteredIndex, 1 + i)
+                            }
                             className="w-full bg-transparent text-white text-center outline-none"
+                            tabIndex={0}
                           />
                         </td>
                       ))}
+
+                      {/* WVS fields */}
+                      {["OHSA", "WE", "UJC", "ISO", "PO", "HR"].map((field, i) => (
+                        <td key={`wvs-${i}`} className={cellStyle}>
+                          <input
+                            id={`cell-${filteredIndex}-${7 + i}`}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="\d*"
+                            value={row.grades[field]}
+                            onChange={(e) =>
+                              handleGradeChange(rowIndex, field, e.target.value)
+                            }
+                            onKeyDown={(e) =>
+                              handleKeyDown(e, filteredIndex, 7 + i)
+                            }
+                            className="w-full bg-transparent text-white text-center outline-none"
+                            tabIndex={0}
+                          />
+                        </td>
+                      ))}
+
+                      {/* EQUIP + ASSESSMENT fields */}
+                      {["WI (EQUIP)", "ELEX", "CM", "SPC", "PROD", "DS"].map(
+                        (field, i) => (
+                          <td key={`equip-${i}`} className={cellStyle}>
+                            <input
+                              id={`cell-${filteredIndex}-${13 + i}`}
+                              type="text"
+                              inputMode="numeric"
+                              pattern="\d*"
+                              value={row.grades[field]}
+                              onChange={(e) =>
+                                handleGradeChange(rowIndex, field, e.target.value)
+                              }
+                              onKeyDown={(e) =>
+                                handleKeyDown(e, filteredIndex, 13 + i)
+                              }
+                              className="w-full bg-transparent text-white text-center outline-none"
+                              tabIndex={0}
+                            />
+                          </td>
+                        )
+                      )}
+
                       <td className={cellStyle}>{result.writtenTotal}</td>
                       <td className={cellStyle}>{result.writtenRating}</td>
+                      <td className={cellStyle}>{result.performanceRating}</td>
                       <td className={cellStyle}>{result.finalGrade}</td>
                       <td className={cellStyle}>{result.remarks}</td>
                     </tr>
