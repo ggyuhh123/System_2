@@ -19,37 +19,40 @@ function Immersion() {
     localStorage.setItem("immersionData", JSON.stringify(dataToStore));
   }, [data]);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+ const handleFileUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const workbook = XLSX.read(e.target.result, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const workbook = XLSX.read(e.target.result, { type: "binary" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      if (jsonData.length === 0) return;
+    if (jsonData.length === 0) return;
 
-      const cleanedData = jsonData.map((row) => ({
-        "Last Name": row["LAST NAME"] || "",
-        "First Name": row["FIRST NAME"] || "",
-        "Middle Name": row["MIDDLE NAME"] || "",
-        Strand: row["STRAND"] || "",
-        Department: row["DEPARTMENT"] || "",
-      }));
+    const cleanedData = jsonData.map((row) => ({
+      "Last Name": row["LAST NAME"] || "",
+      "First Name": row["FIRST NAME"] || "",
+      "Middle Name": row["MIDDLE NAME"] || "",
+      Strand: row["STRAND"] || "",
+      Department: row["DEPARTMENT"] || "",
+    }));
 
-      const newEntry = {
-        fileName: file.name,
-        date: new Date().toLocaleString(),
-        content: cleanedData,
-      };
-
-      setData((prevData) => [...prevData, newEntry]); // ✅ Append to existing
+    const newEntry = {
+      fileName: file.name,
+      date: new Date().toLocaleString(),
+      content: cleanedData,
     };
-    reader.readAsBinaryString(file);
+
+    // Prepend newEntry to show newest first
+    setData((prevData) => [newEntry, ...prevData]);
   };
+  reader.readAsBinaryString(file);
+};
+
+
 
   const handleDownload = (rowData, index) => {
     const formData = new FormData();
@@ -113,7 +116,8 @@ function Immersion() {
 
   const handleViewDetails = (index) => {
     const fileData = data[index];
-    navigate(`/immersion-records/${encodeURIComponent(fileData.fileName)}`, {
+    // Navigate to immersion records with filename in URL and state
+    navigate(`/immersion/records/${encodeURIComponent(fileData.fileName)}`, {
       state: { row: fileData },
     });
   };
@@ -237,7 +241,7 @@ function Immersion() {
                   Cancel
                 </button>
                 <button
-                  className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+                  className="px-4 py-2 rounded-md bg-red-600 text-white"
                   onClick={deleteRow}
                 >
                   Delete

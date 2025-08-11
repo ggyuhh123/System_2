@@ -8,7 +8,8 @@ import Home from './pages/Home';
 import History from './pages/History';  
 import Immersion from './pages/Immersion';
 import ImmersionRecords from './pages/ImmersionRecords';
-
+import ImmersionTechnical from './pages/ImmersionTechnical'; // import technical page
+import ImmersionProduction from './pages/ImmersionProduction'; // import production page
 
 function PrivateRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -26,7 +27,10 @@ const App = () => (
         <Route path="/generate" element={<PrivateRoute><CertificateGenerator /></PrivateRoute>} />
         <Route path="/tesda" element={<PrivateRoute><TESDAPage /></PrivateRoute>} />
         <Route path="/immersion" element={<PrivateRoute><Immersion /></PrivateRoute>} />
-        <Route path="/immersion-records/:filename" element={<PrivateRoute><ImmersionRecords /></PrivateRoute>} />
+        <Route path="/immersion/records/:filename" element={<PrivateRoute><ImmersionRecords /></PrivateRoute>} />
+        <Route path="/immersion/production/:filename" element={<PrivateRoute><ImmersionProduction /></PrivateRoute>} />
+        <Route path="/immersion/technical/:filename" element={<PrivateRoute><ImmersionTechnical /></PrivateRoute>} />
+
       </Routes>
     </Router>
   </AuthProvider>

@@ -31,15 +31,14 @@ const supportDepartments = ["ACCTG", "ERT", "HSN", "HS", "ER"];
 const productionDepartments = ["PROD"];
 const technicalDepartments = ["IT"];
 
-export default function ImmersionRecords() {
+export default function ImmersionProduction() {
   const { filename } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Determine which page is active by checking pathname
   const path = location.pathname.toLowerCase();
   const isProduction = path.includes("/production/");
-  const isSupport = path.includes("/records/"); // Support page
+  const isSupport = path.includes("/records/");
   const isTechnical = path.includes("/technical/");
 
   const [rows, setRows] = useState(() => {
@@ -75,13 +74,12 @@ export default function ImmersionRecords() {
     });
   });
 
-  // Filter rows by department based on page
   const filteredRows = rows.filter((row) => {
     const dept = (row["DEPARTMENT"] || "").toUpperCase().trim();
     if (isSupport) return supportDepartments.includes(dept);
     if (isProduction) return productionDepartments.includes(dept);
     if (isTechnical) return technicalDepartments.includes(dept);
-    return true; // If none matched, show all
+    return true;
   });
 
   const handleGradeChange = (rowIndex, field, value) => {
@@ -91,7 +89,11 @@ export default function ImmersionRecords() {
     if (!isNaN(numeric) && numeric > max) return;
     setRows((prev) => {
       const updated = [...prev];
-      updated[rowIndex].grades[field] = value;
+      const updatedRow = { ...updated[rowIndex] };
+      const updatedGrades = { ...updatedRow.grades };
+      updatedGrades[field] = value;
+      updatedRow.grades = updatedGrades;
+      updated[rowIndex] = updatedRow;
       return updated;
     });
   };
@@ -100,7 +102,8 @@ export default function ImmersionRecords() {
     if (value === "") {
       setRows((prev) => {
         const updated = [...prev];
-        updated[rowIndex].performance = value;
+        const updatedRow = { ...updated[rowIndex], performance: value };
+        updated[rowIndex] = updatedRow;
         return updated;
       });
       return;
@@ -111,7 +114,8 @@ export default function ImmersionRecords() {
       if (/^\d*\.?\d{0,2}$/.test(value)) {
         setRows((prev) => {
           const updated = [...prev];
-          updated[rowIndex].performance = value;
+          const updatedRow = { ...updated[rowIndex], performance: value };
+          updated[rowIndex] = updatedRow;
           return updated;
         });
       }

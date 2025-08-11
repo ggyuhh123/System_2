@@ -31,7 +31,7 @@ const supportDepartments = ["ACCTG", "ERT", "HSN", "HS", "ER"];
 const productionDepartments = ["PROD"];
 const technicalDepartments = ["IT"];
 
-export default function ImmersionRecords() {
+export default function ImmersionTechnical() {
   const { filename } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
